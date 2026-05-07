@@ -1,0 +1,92 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Phase 3: Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Phase 2: Validation Blueprints
+    function isValidUser(data, isUpdate) {
+      return data.uid == request.auth.uid &&
+             (isUpdate ? data.createdAt == existing().createdAt : data.createdAt == request.time) &&
+             data.updatedAt == request.time &&
+             data.displayName is string && data.displayName.size() <= 100 &&
+             (data.email == null || (data.email is string && data.email.size() <= 200)) &&
+             data.coins is number &&
+             data.potions is map &&
+             data.potions.health is number &&
+             data.potions.mana is number;
+    }
+
+    function isValidPet(data, userId, isUpdate) {
+      return data.userId == userId &&
+             data.userId == request.auth.uid &&
+             data.health is number && data.health >= 0 && data.health <= 100 &&
+             data.exp is number && data.exp >= 0 &&
+             data.level is number && data.level >= 1 &&
+             data.name is string && data.name.size() <= 50 &&
+             (isUpdate ? data.createdAt == existing().createdAt : data.createdAt == request.time) &&
+             data.updatedAt == request.time;
+    }
+
+    function isValidSession(data, userId) {
+      return data.userId == userId &&
+             data.userId == request.auth.uid &&
+             data.duration is number && data.duration > 0 &&
+             data.type in ['focus', 'study', 'break'] &&
+             data.startTime is timestamp &&
+             data.createdAt == request.time;
+    }
+
+    // Phase 4: Match Blocks
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUser(incoming(), false);
+      allow update: if isOwner(userId) && isValidId(userId) &&
+                       incoming().uid == existing().uid &&
+                       isValidUser(incoming(), true);
+
+      match /pets/{petId} {
+        allow list: if isOwner(userId) && isValidId(userId);
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(petId);
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(petId) && 
+                         isValidPet(incoming(), userId, false);
+        allow update: if isOwner(userId) && isValidId(userId) && isValidId(petId) &&
+                         incoming().userId == userId &&
+                         isValidPet(incoming(), userId, true);
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(petId);
+      }
+
+      match /sessions/{sessionId} {
+        allow list: if isOwner(userId) && isValidId(userId);
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(sessionId);
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(sessionId) &&
+                         isValidSession(incoming(), userId);
+        // Sessions are typically immutable once recorded
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(sessionId);
+      }
+    }
+  }
+}

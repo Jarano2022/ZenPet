@@ -1,0 +1,72 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile data including preferences and stats.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The unique user ID from Firebase Auth." },
+        "displayName": { "type": "string" },
+        "email": { "format": "email", "type": "string" },
+        "photoURL": { "type": "string" },
+        "isAdmin": { "type": "boolean" },
+        "hasCompletedTutorial": { "type": "boolean" },
+        "coins": { "type": "number" },
+        "potions": {
+          "type": "object",
+          "properties": {
+            "health": { "type": "number" },
+            "mana": { "type": "number" }
+          }
+        },
+        "createdAt": { "format": "date-time", "type": "string" },
+        "updatedAt": { "format": "date-time", "type": "string" }
+      },
+      "required": ["uid", "createdAt", "updatedAt"]
+    },
+    "Pet": {
+      "title": "Pet",
+      "description": "Virtual pet state.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "health": { "type": "number", "description": "0 to 100" },
+        "exp": { "type": "number" },
+        "level": { "type": "number" },
+        "lastFed": { "format": "date-time", "type": "string" },
+        "createdAt": { "format": "date-time", "type": "string" },
+        "updatedAt": { "format": "date-time", "type": "string" }
+      },
+      "required": ["userId", "name", "health", "exp", "level", "createdAt", "updatedAt"]
+    },
+    "Session": {
+      "title": "Session",
+      "description": "Focus or study session record.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "duration": { "type": "number", "description": "Duration in minutes" },
+        "type": { "type": "string", "enum": ["focus", "study", "break"] },
+        "startTime": { "format": "date-time", "type": "string" },
+        "endTime": { "format": "date-time", "type": "string" },
+        "createdAt": { "format": "date-time", "type": "string" }
+      },
+      "required": ["userId", "duration", "type", "startTime", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Personal user profiles."
+    },
+    "/users/{userId}/pets/{petId}": {
+      "schema": "Pet",
+      "description": "Virtual pets belonging to a user."
+    },
+    "/users/{userId}/sessions/{sessionId}": {
+      "schema": "Session",
+      "description": "Study sessions for a user."
+    }
+  }
+}
