@@ -12,8 +12,9 @@ import {
   signInWithEmailLink
 } from 'firebase/auth';
 import { auth, googleProvider, facebookProvider, appleProvider } from '../lib/firebase';
-import { LogIn, Phone, Mail, Chrome, Apple, Facebook, ArrowRight, Smartphone, X, Key, UserPlus, Send, ShieldCheck } from 'lucide-react';
+import { LogIn, Phone, Mail, Chrome, Apple, Facebook, ArrowRight, Smartphone, X, Key, UserPlus, Send, ShieldCheck, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { cn } from '../lib/utils';
 
 export function AuthView() {
   const [authError, setAuthError] = useState<string | null>(null);
@@ -43,6 +44,10 @@ export function AuthView() {
     { name: 'Estados Unidos', code: '+1', flag: '🇺🇸' },
     { name: 'Reino Unido', code: '+44', flag: '🇬🇧' },
   ];
+
+  const [showCountrySelector, setShowCountrySelector] = useState(false);
+
+  const selectedCountryData = COUNTRIES.find(c => c.code === selectedCountry) || COUNTRIES[0];
 
   useEffect(() => {
     // Verificar si el usuario viene de un enlace de correo
@@ -226,22 +231,61 @@ export function AuthView() {
                 <form onSubmit={onSignInSubmit} className="space-y-4">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-[#A1A2AB] uppercase tracking-widest ml-1">Región y Teléfono</label>
-                    <div className="flex gap-2">
-                      <select 
-                        value={selectedCountry}
-                        onChange={(e) => setSelectedCountry(e.target.value)}
-                        className="w-1/3 py-4 px-3 bg-[#F5F9F8] rounded-2xl border-2 border-transparent focus:border-[#595168] outline-none transition-all font-bold text-sm cursor-pointer"
-                      >
-                        {COUNTRIES.map(c => (
-                          <option key={c.code} value={c.code}>{c.flag} {c.code}</option>
-                        ))}
-                      </select>
+                    <div className="flex gap-0 relative">
+                      <div className="w-1/3">
+                        <button 
+                          type="button"
+                          onClick={() => setShowCountrySelector(!showCountrySelector)}
+                          className="w-full h-full py-4 px-4 bg-white border-4 border-[#252330] flex items-center justify-between font-black text-sm cursor-pointer hover:bg-amber-50 transition-colors"
+                        >
+                          <span className="flex items-center gap-2">
+                            <span className="text-xl leading-none">{selectedCountryData.flag}</span>
+                            <span>{selectedCountryData.code}</span>
+                          </span>
+                          <ChevronDown className={cn("w-5 h-5 text-[#252330] transition-transform", showCountrySelector && "rotate-180")} />
+                        </button>
+
+                        <AnimatePresence>
+                          {showCountrySelector && (
+                            <motion.div 
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: 10 }}
+                              className="absolute top-full left-0 w-64 bg-white border-4 border-[#252330] z-50 mt-2 max-h-60 overflow-y-auto"
+                            >
+                              {COUNTRIES.map((c) => (
+                                <button
+                                  key={c.code}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedCountry(c.code);
+                                    setShowCountrySelector(false);
+                                  }}
+                                  className={cn(
+                                    "w-full p-4 flex items-center justify-between hover:bg-amber-50 border-b-2 border-[#252330]/10 last:border-0 transition-all",
+                                    selectedCountry === c.code && "bg-[#F5F9F8]"
+                                  )}
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-2xl">{c.flag}</span>
+                                    <div className="text-left">
+                                      <p className="text-[10px] font-black uppercase text-[#A1A2AB] tracking-widest">{c.name}</p>
+                                      <p className="font-black text-sm">{c.code}</p>
+                                    </div>
+                                  </div>
+                                  {selectedCountry === c.code && <div className="w-2 h-2 bg-[#252330] rounded-full" />}
+                                </button>
+                              ))}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
                       <input 
                         type="tel" 
                         placeholder="600 000 000" 
                         value={phoneNumber}
                         onChange={(e) => setPhoneNumber(e.target.value)}
-                        className="flex-1 py-4 px-6 bg-[#F5F9F8] rounded-2xl border-2 border-transparent focus:border-[#595168] outline-none transition-all font-bold text-lg"
+                        className="flex-1 py-4 px-6 bg-white border-4 border-l-0 border-[#252330] outline-none transition-all font-black text-lg placeholder:opacity-30 focus:bg-amber-50"
                         required
                       />
                     </div>
@@ -249,10 +293,10 @@ export function AuthView() {
                   <button 
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-[#595168] text-white py-4 rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-[#3B3A4A] transition-all disabled:opacity-50"
+                    className="w-full bg-[#3B3A4A] text-white py-5 border-4 border-[#252330] font-black flex items-center justify-center gap-4 hover:bg-[#252330] transition-all active:translate-y-[2px] uppercase italic"
                   >
-                    {loading ? "Enviando..." : "Enviar código SMS"}
-                    <ArrowRight className="w-5 h-5" />
+                    {loading ? "ENVIANDO..." : "ENVIAR CÓDIGO SMS"}
+                    <ArrowRight className="w-6 h-6" />
                   </button>
                 </form>
               ) : (
@@ -264,7 +308,7 @@ export function AuthView() {
                       placeholder="000000" 
                       value={verificationCode}
                       onChange={(e) => setVerificationCode(e.target.value)}
-                      className="w-full py-4 px-6 bg-[#F5F9F8] rounded-2xl border-2 border-transparent focus:border-emerald-500 outline-none transition-all font-black text-2xl tracking-[0.4em] text-center"
+                      className="w-full py-6 px-6 bg-white border-4 border-[#252330] outline-none focus:bg-emerald-50 transition-all font-black text-3xl tracking-[0.6em] text-center"
                       maxLength={6}
                       required
                     />
@@ -272,9 +316,9 @@ export function AuthView() {
                   <button 
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-emerald-500 text-white py-4 rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-emerald-600 transition-all disabled:opacity-50 shadow-lg shadow-emerald-500/20"
+                    className="w-full bg-emerald-500 text-[#252330] py-6 border-4 border-[#252330] font-black flex items-center justify-center gap-3 hover:bg-emerald-600 transition-all active:translate-y-[2px] uppercase italic"
                   >
-                    {loading ? "Verificando..." : "Confirmar código"}
+                    {loading ? "VERIFICANDO..." : "CONFIRMAR CÓDIGO"}
                   </button>
                   <button 
                     type="button"
